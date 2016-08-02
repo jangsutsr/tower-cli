@@ -31,7 +31,7 @@ def version():
     """Display version information."""
 
     # Attempt to connect to the Ansible Tower server.
-    # If we succeed, assign the version variable; if not, 
+    # If we succeed, assign the version variable; if not,
     # set no-connection flag.
     try:
         r = client.get('/config/')

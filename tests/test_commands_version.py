@@ -16,6 +16,7 @@
 from click.testing import CliRunner
 
 import requests
+import os
 
 import tower_cli
 from tower_cli.api import client
@@ -50,10 +51,29 @@ class VersionTests(unittest.TestCase):
 
     def test_cannot_connect(self):
         """Establish that the version command gives a nice error in cases
-        where it cannot connect to Tower.
+        where it cannot connect to Tower and there are no config files
+        providing previous version info.
         """
         with mock.patch.object(client, 'get') as get:
             get.side_effect = requests.exceptions.RequestException
             result = self.runner.invoke(version)
             self.assertEqual(result.exit_code, 1)
-            self.assertIn('Could not connect to Ansible Tower.', result.output)
+            self.assertIn('Could not connect to Ansible Tower and no'
+                          ' previous record available.', result.output)
+
+    def test_read_previous_record(self):
+        """Establish that the version command gives version on file in
+        cases where it cannot connect to Tower but there are records on
+        some config files.
+        """
+        with open('.tower_cli.cfg', 'w') as f:
+            f.write('[remote]\nversion = 3.0.0\n')
+
+        with mock.patch.object(client, 'get') as get:
+            get.side_effect = requests.exceptions.RequestException
+            result = self.runner.invoke(version)
+            self.assertIn('Fetching previous record due to connection error,'
+                          ' the result might be deprecated...', result.output)
+            self.assertIn('Ansible Tower 3.0.0\n', result.output)
+
+        os.remove('.tower_cli.cfg')
